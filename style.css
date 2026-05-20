@@ -1,0 +1,178 @@
+/* --- THEME VARIABLES --- */
+:root {
+    /* Standard Light Mode (Default) */
+    --bg-colour: #F9FAFB;
+    --text-colour: #111827;
+    --card-bg: #FFFFFF;
+    --border-colour: #E5E7EB;
+    
+    /* Marigold Orange (Stays consistent across both modes) */
+    --marigold: #FCA311; 
+    --marigold-hover: #E5940F;
+}
+
+/* Dark Mode Overrides */
+[data-theme="dark"] {
+    --bg-colour: #121212;
+    --text-colour: #F9FAFB;
+    --card-bg: #1E1E1E;
+    --border-colour: #374151;
+}
+
+/* --- GLOBAL STYLES --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-colour);
+    color: var(--text-colour);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* --- TYPOGRAPHY (Church Branding) --- */
+.font-bem {
+    font-family: 'Britannic Bold', Impact, sans-serif;
+    font-size: 1.5rem;
+    color: var(--text-colour);
+}
+
+.font-rock {
+    font-family: 'Forte', 'Comic Sans MS', cursive;
+    font-size: 1.6rem;
+    color: var(--marigold);
+    margin-right: 10px;
+}
+
+.app-title {
+    font-size: 1rem;
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+/* --- LAYOUT --- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-colour);
+}
+
+.container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+/* --- CHECKOUT PANEL --- */
+.checkout-panel {
+    background-color: var(--card-bg);
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-colour);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.checkout-panel h2 {
+    margin-bottom: 1.5rem;
+    color: var(--marigold);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+input[type="number"], select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-colour);
+    border-radius: 6px;
+    background-color: var(--bg-colour);
+    color: var(--text-colour);
+    font-size: 1rem;
+}
+
+.total-display {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--marigold);
+    padding: 0.5rem 0;
+}
+
+/* --- PAYMENT GRID --- */
+.payment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.payment-option input[type="radio"] {
+    display: none; /* Hide standard radio buttons */
+}
+
+.payment-btn {
+    display: block;
+    text-align: center;
+    padding: 1rem;
+    border: 2px solid var(--border-colour);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+/* Style when a payment method is selected */
+.payment-option input[type="radio"]:checked + .payment-btn {
+    border-color: var(--marigold);
+    background-color: var(--marigold);
+    color: #121212; /* Keep text dark for contrast against orange */
+}
+
+/* --- BUTTONS --- */
+.btn-primary {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--marigold);
+    color: #121212;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: var(--marigold-hover);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-colour);
+    color: var(--text-colour);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}

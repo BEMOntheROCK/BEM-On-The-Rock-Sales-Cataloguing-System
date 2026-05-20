@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROCS - Checkout Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="brand">
+            <span class="font-bem">BEM</span> 
+            <span class="font-rock">On The Rock</span>
+            <span class="app-title">| Sales Catalogue</span>
+        </div>
+        <button id="theme-toggle" class="btn-outline">🌙 Dark Mode</button>
+    </header>
+
+    <main class="container">
+        <section class="checkout-panel">
+            <h2>Log a Sale</h2>
+            
+            <form id="checkout-form">
+                <div class="form-group">
+                    <label for="product-select">Select Item</label>
+                    <select id="product-select" required>
+                        <option value="" disabled selected>-- Choose an item from inventory --</option>
+                        <option value="tshirt_m">Church Anniversary T-Shirt (Size: M)</option>
+                        <option value="tshirt_l">Church Anniversary T-Shirt (Size: L)</option>
+                        <option value="book_devotional">Daily Devotional Book</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="quantity">Quantity</label>
+                        <input type="number" id="quantity" min="1" value="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Price (RM)</label>
+                        <div class="total-display" id="total-price">0.00</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <div class="payment-grid">
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="Cash" checked>
+                            <span class="payment-btn">Cash</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="Credit">
+                            <span class="payment-btn">Credit/Debit</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="Online Banking">
+                            <span class="payment-btn">Online Transfer</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="QR DuitNow">
+                            <span class="payment-btn">QR DuitNow</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">Complete Transaction</button>
+            </form>
+        </section>
+    </main>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
