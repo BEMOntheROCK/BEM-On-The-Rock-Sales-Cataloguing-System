@@ -1,22 +1,22 @@
 /* --- THEME VARIABLES --- */
 :root {
-    /* Standard Light Mode (Default) */
     --bg-colour: #F9FAFB;
     --text-colour: #111827;
     --card-bg: #FFFFFF;
     --border-colour: #E5E7EB;
-    
-    /* Marigold Orange (Stays consistent across both modes) */
     --marigold: #FCA311; 
     --marigold-hover: #E5940F;
+    /* Light mode background overlay: keeps image subtle but readable */
+    --bg-overlay: rgba(249, 250, 251, 0.87);
 }
 
-/* Dark Mode Overrides */
 [data-theme="dark"] {
     --bg-colour: #121212;
     --text-colour: #F9FAFB;
     --card-bg: #1E1E1E;
     --border-colour: #374151;
+    /* Dark mode overlay: deeper tint so image doesn't fight dark UI */
+    --bg-overlay: rgba(18, 18, 18, 0.88);
 }
 
 /* --- GLOBAL STYLES --- */
@@ -28,7 +28,16 @@
 }
 
 body {
+    /* Layered background: colour overlay on top of the image.
+       The overlay variable changes with the theme so the image
+       stays visible but never overwhelms the content. */
     background-color: var(--bg-colour);
+    background-image:
+        linear-gradient(var(--bg-overlay), var(--bg-overlay)),
+        url('images/background-catalogue.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
     color: var(--text-colour);
     transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -145,7 +154,7 @@ input[type="number"], select {
 }
 
 .payment-option input[type="radio"] {
-    display: none; /* Hide standard radio buttons */
+    display: none;
 }
 
 .payment-btn {
@@ -159,11 +168,10 @@ input[type="number"], select {
     transition: all 0.2s;
 }
 
-/* Style when a payment method is selected */
 .payment-option input[type="radio"]:checked + .payment-btn {
     border-color: var(--marigold);
     background-color: var(--marigold);
-    color: #121212; /* Keep text dark for contrast against orange */
+    color: #121212;
 }
 
 /* --- BUTTONS --- */

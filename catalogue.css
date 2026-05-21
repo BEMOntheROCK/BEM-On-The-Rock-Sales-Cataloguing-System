@@ -9,6 +9,7 @@
     --danger: #EF4444;
     --danger-hover: #DC2626;
     --muted-text: #6B7280;
+    --bg-overlay: rgba(249, 250, 251, 0.87);
 }
 
 [data-theme="dark"] {
@@ -17,11 +18,23 @@
     --card-bg: #1E1E1E;
     --border-colour: #374151;
     --muted-text: #9CA3AF;
+    --bg-overlay: rgba(18, 18, 18, 0.88);
 }
 
 /* --- GLOBAL STYLES --- */
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-body { background-color: var(--bg-colour); color: var(--text-colour); transition: background-color 0.3s, color 0.3s; }
+
+body {
+    background-color: var(--bg-colour);
+    background-image:
+        linear-gradient(var(--bg-overlay), var(--bg-overlay)),
+        url('images/background-catalogue.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    color: var(--text-colour);
+    transition: background-color 0.3s, color 0.3s;
+}
 
 /* --- TYPOGRAPHY --- */
 .font-bem { font-family: 'Britannic Bold', Impact, sans-serif; font-size: 1.5rem; color: var(--text-colour); }
