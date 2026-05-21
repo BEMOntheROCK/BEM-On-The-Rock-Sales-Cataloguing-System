@@ -35,9 +35,8 @@
                     </div>
                 </div>
 
-                <!-- IMAGE UPLOAD -->
                 <div class="form-group">
-                    <label for="product-image">Product Image <span class="helper-text" style="display:inline;">(max 6MB — will be compressed automatically)</span></label>
+                    <label for="product-image">Product Image <span class="helper-text" style="display:inline;">(max 6MB — compressed automatically)</span></label>
                     <div class="image-upload-area" id="image-upload-area">
                         <input type="file" id="product-image" accept="image/*" hidden>
                         <div class="image-placeholder" id="image-placeholder">
@@ -52,7 +51,6 @@
                 <div class="form-group">
                     <label>Product Variations & Stock Levels</label>
                     <p class="helper-text">Specify the size, colour, or type, and how many are currently in stock.</p>
-                    
                     <div id="variations-container">
                         <div class="variation-row">
                             <input type="text" class="var-name" placeholder="e.g., Size S - Black" required>
@@ -60,7 +58,6 @@
                             <button type="button" class="btn-icon delete-var" disabled>🗑️</button>
                         </div>
                     </div>
-                    
                     <button type="button" id="add-variation-btn" class="btn-outline add-btn">+ Add Another Variation</button>
                 </div>
 
@@ -86,6 +83,63 @@
             </div>
         </section>
     </main>
+
+    <!-- ===== EDIT MODAL ===== -->
+    <div id="edit-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Edit Product</h2>
+                <button id="modal-close-btn" class="btn-modal-close" aria-label="Close">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <form id="edit-form">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-name">Product Name</label>
+                            <input type="text" id="edit-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-price">Unit Price (RM)</label>
+                            <input type="number" id="edit-price" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <!-- IMAGE SECTION -->
+                    <div class="form-group">
+                        <label>Product Image <span class="helper-text" style="display:inline;">(max 6MB — compressed automatically)</span></label>
+                        <div class="image-upload-area" id="edit-image-upload-area">
+                            <input type="file" id="edit-product-image" accept="image/*" hidden>
+                            <div class="image-placeholder" id="edit-image-placeholder">
+                                <span class="upload-icon">📷</span>
+                                <span>Click to upload image</span>
+                            </div>
+                            <img id="edit-image-preview" class="image-preview hidden" alt="Product preview">
+                            <button type="button" id="edit-remove-image-btn" class="btn-remove-image hidden">✕ Remove</button>
+                        </div>
+                    </div>
+
+                    <!-- VARIATIONS SECTION -->
+                    <div class="form-group">
+                        <label>Variations & Stock Levels</label>
+                        <p class="helper-text">Deleting a variation with remaining stock will permanently remove those units.</p>
+                        <div id="edit-variations-container"></div>
+                        <button type="button" id="edit-add-variation-btn" class="btn-outline add-btn">+ Add Another Variation</button>
+                    </div>
+
+                    <!-- ERROR MESSAGE -->
+                    <p id="edit-error" class="edit-error hidden"></p>
+
+                    <div class="modal-footer">
+                        <button type="button" id="modal-cancel-btn" class="btn-outline">Cancel</button>
+                        <button type="submit" id="edit-save-btn" class="btn-primary modal-save-btn">Save Changes</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="catalogue.js"></script>
 </body>
