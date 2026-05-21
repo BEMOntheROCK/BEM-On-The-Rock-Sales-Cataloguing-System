@@ -1,0 +1,72 @@
+/* --- THEME VARIABLES --- */
+:root {
+    --bg-colour: #F9FAFB;
+    --text-colour: #111827;
+    --card-bg: #FFFFFF;
+    --border-colour: #E5E7EB;
+    --marigold: #FCA311; 
+    --marigold-hover: #E5940F;
+    --danger: #EF4444;
+    --danger-hover: #DC2626;
+    --muted-text: #6B7280;
+}
+
+[data-theme="dark"] {
+    --bg-colour: #121212;
+    --text-colour: #F9FAFB;
+    --card-bg: #1E1E1E;
+    --border-colour: #374151;
+    --muted-text: #9CA3AF;
+}
+
+/* --- GLOBAL STYLES --- */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background-color: var(--bg-colour); color: var(--text-colour); transition: background-color 0.3s, color 0.3s; }
+
+/* --- TYPOGRAPHY --- */
+.font-bem { font-family: 'Britannic Bold', Impact, sans-serif; font-size: 1.5rem; color: var(--text-colour); }
+.font-rock { font-family: 'Forte', 'Comic Sans MS', cursive; font-size: 1.6rem; color: var(--marigold); margin-right: 10px; }
+.app-title { font-size: 1rem; font-weight: 600; opacity: 0.7; }
+.helper-text { font-size: 0.85rem; color: var(--muted-text); margin-bottom: 0.5rem; }
+
+/* --- LAYOUT & NAVBAR --- */
+.navbar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: var(--card-bg); border-bottom: 1px solid var(--border-colour); }
+.nav-controls { display: flex; align-items: center; gap: 1rem; }
+.nav-link { color: var(--text-colour); text-decoration: none; font-weight: 600; transition: color 0.2s; }
+.nav-link:hover { color: var(--marigold); }
+.container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; display: flex; flex-direction: column; gap: 2rem; }
+
+/* --- PANELS & FORMS --- */
+.admin-panel { background-color: var(--card-bg); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-colour); box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+.admin-panel h2 { margin-bottom: 1.5rem; color: var(--marigold); }
+.form-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+.form-group { flex: 1; margin-bottom: 1.5rem; }
+label { display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; }
+input[type="text"], input[type="number"] { width: 100%; padding: 0.75rem; border: 1px solid var(--border-colour); border-radius: 6px; background-color: var(--bg-colour); color: var(--text-colour); font-size: 1rem; }
+
+/* --- DYNAMIC VARIATIONS --- */
+#variations-container { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+.variation-row { display: flex; gap: 0.5rem; align-items: center; }
+.variation-row .var-name { flex: 2; }
+.variation-row .var-stock { flex: 1; }
+
+/* --- BUTTONS --- */
+.btn-primary { width: 100%; padding: 1rem; background-color: var(--marigold); color: #121212; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+.btn-primary:hover { background-color: var(--marigold-hover); }
+.btn-outline { background: transparent; border: 1px solid var(--border-colour); color: var(--text-colour); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
+.btn-outline.add-btn { width: 100%; border-style: dashed; border-color: var(--marigold); color: var(--marigold); }
+.btn-icon { background: transparent; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
+.btn-icon:hover:not(:disabled) { opacity: 1; }
+.btn-icon:disabled { opacity: 0.2; cursor: not-allowed; }
+.btn-action { padding: 0.4rem 0.8rem; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+.btn-edit { background-color: var(--text-colour); color: var(--bg-colour); margin-right: 0.5rem; }
+.btn-delete { background-color: var(--danger); color: white; }
+
+/* --- DATA TABLE --- */
+.table-responsive { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 1rem; border-bottom: 1px solid var(--border-colour); }
+th { color: var(--muted-text); font-weight: 600; text-transform: uppercase; font-size: 0.85rem; }
+.variation-badge { display: inline-flex; justify-content: space-between; align-items: center; background-color: var(--bg-colour); border: 1px solid var(--border-colour); padding: 0.3rem 0.6rem; border-radius: 20px; font-size: 0.85rem; margin: 0.2rem; width: 100%; max-width: 200px; }
+.stock-count { font-weight: bold; color: var(--marigold); background: var(--card-bg); padding: 0.1rem 0.5rem; border-radius: 12px; margin-left: 10px; }
+.stock-low { color: var(--danger); }
