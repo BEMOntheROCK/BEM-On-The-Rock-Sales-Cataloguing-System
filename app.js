@@ -1,12 +1,11 @@
 import { db } from './firebase.js';
 import {
-    collection, addDoc, getDocs, doc, runTransaction, serverTimestamp
+    collection, getDocs, addDoc, doc, runTransaction, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// --- THEME TOGGLE LOGIC ---
+// --- THEME TOGGLE ---
 const themeToggleBtn = document.getElementById('theme-toggle');
 const rootElement = document.documentElement;
-
 let isDarkMode = localStorage.getItem('theme') === 'dark';
 
 function updateTheme() {
@@ -20,150 +19,211 @@ function updateTheme() {
         localStorage.setItem('theme', 'light');
     }
 }
-
 updateTheme();
-themeToggleBtn.addEventListener('click', () => {
-    isDarkMode = !isDarkMode;
-    updateTheme();
-});
+themeToggleBtn.addEventListener('click', () => { isDarkMode = !isDarkMode; updateTheme(); });
 
-// --- CHECKOUT FORM LOGIC ---
+// --- STATE ---
 const checkoutForm = document.getElementById('checkout-form');
-const productSelect = document.getElementById('product-select');
+const productGrid = document.getElementById('product-grid');
+const variantGroup = document.getElementById('variant-group');
+const variantGrid = document.getElementById('variant-grid');
+const quantityGroup = document.getElementById('quantity-group');
 const quantityInput = document.getElementById('quantity');
 const totalPriceDisplay = document.getElementById('total-price');
 const submitBtn = checkoutForm.querySelector('.btn-primary');
 
-// Local map of all selectable options, keyed by "productId_varIndex"
-// Lets us look up price and stock instantly without re-querying Firestore
-let catalogueMap = {};
+let catalogue = [];        // All products from Firestore
+let selectedProduct = null; // Currently selected product object
+let selectedVarIndex = null; // Currently selected variation index
 
-// Fetch all products from Firestore and build the dropdown
+// --- LOAD CATALOGUE & BUILD CARD GRID ---
 async function loadCatalogue() {
-    productSelect.innerHTML = '<option value="" disabled selected>Loading inventory...</option>';
+    productGrid.innerHTML = '<p class="grid-loading">Loading inventory...</p>';
 
     try {
         const snapshot = await getDocs(collection(db, 'catalogue'));
+        catalogue = [];
 
-        if (snapshot.empty) {
-            productSelect.innerHTML = '<option value="" disabled selected>-- No items in inventory --</option>';
+        snapshot.forEach(docSnap => {
+            catalogue.push({ id: docSnap.id, ...docSnap.data() });
+        });
+
+        if (catalogue.length === 0) {
+            productGrid.innerHTML = '<p class="grid-loading">No items in inventory yet.</p>';
             return;
         }
 
-        productSelect.innerHTML = '<option value="" disabled selected>-- Choose an item from inventory --</option>';
-        catalogueMap = {}; // Reset map on each load
-
-        snapshot.forEach(docSnap => {
-            const product = docSnap.data();
-            const productId = docSnap.id;
-
-            product.variations.forEach((variation, index) => {
-                const key = `${productId}_${index}`;
-
-                // Store everything we need for this option in the map
-                catalogueMap[key] = {
-                    productId,
-                    varIndex: index,
-                    productName: product.name,
-                    varName: variation.name,
-                    price: product.price,
-                    stock: variation.stock
-                };
-
-                const option = document.createElement('option');
-                option.value = key;
-
-                if (variation.stock === 0) {
-                    option.textContent = `${product.name} — ${variation.name} [Out of Stock]`;
-                    option.disabled = true;
-                } else {
-                    option.textContent = `${product.name} — ${variation.name} (RM${product.price.toFixed(2)})`;
-                }
-
-                productSelect.appendChild(option);
-            });
-        });
+        renderProductGrid();
 
     } catch (err) {
         console.error("Failed to load catalogue:", err);
-        productSelect.innerHTML = '<option value="" disabled selected>-- Error loading inventory --</option>';
+        productGrid.innerHTML = '<p class="grid-loading" style="color:red;">Error loading inventory.</p>';
     }
 }
 
-// Calculate total dynamically when selection or quantity changes
-function updateTotal() {
-    const key = productSelect.value;
-    const qty = parseInt(quantityInput.value) || 0;
+function renderProductGrid() {
+    productGrid.innerHTML = '';
 
-    if (key && catalogueMap[key]) {
-        totalPriceDisplay.innerText = (catalogueMap[key].price * qty).toFixed(2);
+    catalogue.forEach(product => {
+        // Check if every variation is out of stock
+        const totalStock = product.variations.reduce((sum, v) => sum + v.stock, 0);
+        const isOOS = totalStock === 0;
+
+        const card = document.createElement('div');
+        card.className = 'product-card' + (isOOS ? ' out-of-stock' : '');
+        card.dataset.productId = product.id;
+
+        const imageHTML = product.imageBase64
+            ? `<img src="${product.imageBase64}" class="product-card-img" alt="${product.name}">`
+            : `<div class="product-card-img-placeholder">📦</div>`;
+
+        card.innerHTML = `
+            ${imageHTML}
+            <div class="product-card-body">
+                <div class="product-card-name">${product.name}</div>
+                <div class="product-card-price">RM${product.price.toFixed(2)}</div>
+                ${isOOS ? '<div class="product-card-oos">Out of Stock</div>' : ''}
+            </div>
+        `;
+
+        if (!isOOS) {
+            card.addEventListener('click', () => handleProductSelect(product));
+        }
+
+        productGrid.appendChild(card);
+    });
+}
+
+// --- HANDLE PRODUCT SELECTION ---
+function handleProductSelect(product) {
+    selectedProduct = product;
+    selectedVarIndex = null;
+
+    // Highlight the selected card, unhighlight others
+    document.querySelectorAll('.product-card').forEach(c => c.classList.remove('selected'));
+    document.querySelector(`.product-card[data-product-id="${product.id}"]`).classList.add('selected');
+
+    // Hide quantity section until variant (if needed) is chosen
+    quantityGroup.classList.add('hidden');
+    totalPriceDisplay.innerText = '0.00';
+
+    const hasMultipleVariants = product.variations.length > 1;
+
+    if (hasMultipleVariants) {
+        // Show variant selector
+        renderVariantGrid(product);
+        variantGroup.classList.remove('hidden');
     } else {
-        totalPriceDisplay.innerText = '0.00';
+        // Single variation — skip variant step, go straight to quantity
+        variantGroup.classList.add('hidden');
+        selectedVarIndex = 0;
+        showQuantitySection();
     }
 }
 
-productSelect.addEventListener('change', updateTotal);
+// --- RENDER VARIANT BUTTONS ---
+function renderVariantGrid(product) {
+    variantGrid.innerHTML = '';
+
+    product.variations.forEach((variation, index) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'variant-btn';
+        btn.disabled = variation.stock === 0;
+        btn.innerHTML = `
+            ${variation.name}
+            <span class="variant-stock-label">${variation.stock === 0 ? 'Out of stock' : `${variation.stock} left`}</span>
+        `;
+
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.variant-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            selectedVarIndex = index;
+            showQuantitySection();
+        });
+
+        variantGrid.appendChild(btn);
+    });
+}
+
+// --- SHOW QUANTITY + PAYMENT SECTION ---
+function showQuantitySection() {
+    quantityInput.value = 1;
+    updateTotal();
+    quantityGroup.classList.remove('hidden');
+    // Scroll smoothly to the quantity section on mobile
+    quantityGroup.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// --- TOTAL CALCULATION ---
+function updateTotal() {
+    if (!selectedProduct || selectedVarIndex === null) {
+        totalPriceDisplay.innerText = '0.00';
+        return;
+    }
+    const qty = parseInt(quantityInput.value) || 0;
+    totalPriceDisplay.innerText = (selectedProduct.price * qty).toFixed(2);
+}
+
 quantityInput.addEventListener('input', updateTotal);
 
-// Handle form submission
+// --- FORM SUBMISSION ---
 checkoutForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const key = productSelect.value;
+    if (!selectedProduct || selectedVarIndex === null) {
+        return alert('Please select an item and variation.');
+    }
+
+    const variation = selectedProduct.variations[selectedVarIndex];
     const qty = parseInt(quantityInput.value);
     const total = parseFloat(totalPriceDisplay.innerText);
     const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
-    const item = catalogueMap[key];
 
-    // Guard: check stock before proceeding
-    if (!item) return alert('Please select a valid item.');
     if (qty < 1) return alert('Quantity must be at least 1.');
-    if (qty > item.stock) {
-        return alert(`Not enough stock! Only ${item.stock} unit(s) of "${item.varName}" remaining.`);
+    if (qty > variation.stock) {
+        return alert(`Not enough stock! Only ${variation.stock} unit(s) of "${variation.name}" remaining.`);
     }
 
-    // Disable button to prevent double-submission
     submitBtn.disabled = true;
     submitBtn.textContent = 'Processing...';
 
     try {
-        // STEP 1: Write the sale record to the 'sales' collection
+        // Write sale record
         await addDoc(collection(db, 'sales'), {
-            productId: item.productId,
-            productName: item.productName,
-            variationName: item.varName,
+            productId: selectedProduct.id,
+            productName: selectedProduct.name,
+            variationName: variation.name,
             quantity: qty,
-            unitPrice: item.price,
+            unitPrice: selectedProduct.price,
             totalPaid: total,
-            paymentMethod: paymentMethod,
+            paymentMethod,
             timestamp: serverTimestamp()
         });
 
-        // STEP 2: Deduct stock from the product's variation using a transaction.
-        // A transaction ensures that if two sales happen at the same time,
-        // the stock count stays accurate (no race condition).
-        const productRef = doc(db, 'catalogue', item.productId);
-
+        // Deduct stock via transaction
+        const productRef = doc(db, 'catalogue', selectedProduct.id);
         await runTransaction(db, async (transaction) => {
             const productDoc = await transaction.get(productRef);
-
             if (!productDoc.exists()) throw new Error("Product no longer exists.");
 
             const variations = [...productDoc.data().variations];
-            const newStock = variations[item.varIndex].stock - qty;
-
+            const newStock = variations[selectedVarIndex].stock - qty;
             if (newStock < 0) throw new Error("Insufficient stock — sale aborted.");
 
-            variations[item.varIndex].stock = newStock;
+            variations[selectedVarIndex].stock = newStock;
             transaction.update(productRef, { variations });
         });
 
-        alert(`✅ Sale logged!\n\n${item.productName} — ${item.varName}\nQty: ${qty}\nTotal: RM${total.toFixed(2)} via ${paymentMethod}`);
+        alert(`✅ Sale logged!\n\n${selectedProduct.name} — ${variation.name}\nQty: ${qty}\nTotal: RM${total.toFixed(2)} via ${paymentMethod}`);
 
-        // Reset form and reload dropdown to reflect updated stock levels
-        checkoutForm.reset();
+        // Full reset
+        selectedProduct = null;
+        selectedVarIndex = null;
+        variantGroup.classList.add('hidden');
+        quantityGroup.classList.add('hidden');
         totalPriceDisplay.innerText = '0.00';
-        await loadCatalogue();
+        await loadCatalogue(); // Refresh grid with updated stock
 
     } catch (err) {
         console.error("Transaction failed:", err);
@@ -174,5 +234,5 @@ checkoutForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Load catalogue on page start
+// Boot
 loadCatalogue();

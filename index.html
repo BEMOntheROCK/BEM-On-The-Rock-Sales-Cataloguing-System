@@ -25,48 +25,59 @@
             <h2>Log a Sale</h2>
             
             <form id="checkout-form">
+
+                <!-- STEP 1: Product card grid -->
                 <div class="form-group">
-                    <label for="product-select">Select Item</label>
-                    <!-- Options are populated dynamically from Firestore by app.js -->
-                    <select id="product-select" required>
-                        <option value="" disabled selected>Loading inventory...</option>
-                    </select>
+                    <label>Select Item</label>
+                    <div id="product-grid" class="product-grid">
+                        <p class="grid-loading">Loading inventory...</p>
+                    </div>
                 </div>
 
-                <div class="form-row">
+                <!-- STEP 2: Variant selector — shown only when selected product has multiple variants -->
+                <div class="form-group hidden" id="variant-group">
+                    <label>Select Variation</label>
+                    <div id="variant-grid" class="variant-grid"></div>
+                </div>
+
+                <!-- STEP 3: Quantity + Total — shown after item (and variant if needed) is selected -->
+                <div id="quantity-group" class="hidden">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="quantity">Quantity</label>
+                            <input type="number" id="quantity" min="1" value="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Total Price (RM)</label>
+                            <div class="total-display" id="total-price">0.00</div>
+                        </div>
+                    </div>
+
                     <div class="form-group">
-                        <label for="quantity">Quantity</label>
-                        <input type="number" id="quantity" min="1" value="1" required>
+                        <label>Payment Method</label>
+                        <div class="payment-grid">
+                            <label class="payment-option">
+                                <input type="radio" name="payment" value="Cash" checked>
+                                <span class="payment-btn">Cash</span>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="payment" value="Credit">
+                                <span class="payment-btn">Credit/Debit</span>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="payment" value="Online Banking">
+                                <span class="payment-btn">Online Transfer</span>
+                            </label>
+                            <label class="payment-option">
+                                <input type="radio" name="payment" value="QR DuitNow">
+                                <span class="payment-btn">QR DuitNow</span>
+                            </label>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Total Price (RM)</label>
-                        <div class="total-display" id="total-price">0.00</div>
-                    </div>
+
+                    <button type="submit" class="btn-primary">Complete Transaction</button>
                 </div>
 
-                <div class="form-group">
-                    <label>Payment Method</label>
-                    <div class="payment-grid">
-                        <label class="payment-option">
-                            <input type="radio" name="payment" value="Cash" checked>
-                            <span class="payment-btn">Cash</span>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="payment" value="Credit">
-                            <span class="payment-btn">Credit/Debit</span>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="payment" value="Online Banking">
-                            <span class="payment-btn">Online Transfer</span>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="payment" value="QR DuitNow">
-                            <span class="payment-btn">QR DuitNow</span>
-                        </label>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary">Complete Transaction</button>
             </form>
         </section>
     </main>
