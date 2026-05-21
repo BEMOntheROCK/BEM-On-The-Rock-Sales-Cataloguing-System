@@ -26,11 +26,9 @@
             <form id="checkout-form">
                 <div class="form-group">
                     <label for="product-select">Select Item</label>
+                    <!-- Options are populated dynamically from Firestore by app.js -->
                     <select id="product-select" required>
-                        <option value="" disabled selected>-- Choose an item from inventory --</option>
-                        <option value="tshirt_m">Church Anniversary T-Shirt (Size: M)</option>
-                        <option value="tshirt_l">Church Anniversary T-Shirt (Size: L)</option>
-                        <option value="book_devotional">Daily Devotional Book</option>
+                        <option value="" disabled selected>Loading inventory...</option>
                     </select>
                 </div>
 
