@@ -167,3 +167,63 @@ input[type="number"] { width: 100%; padding: 0.75rem; border: 1px solid var(--bo
 .btn-primary { width: 100%; padding: 1rem; background-color: var(--marigold); color: #121212; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s; }
 .btn-primary:hover { background-color: var(--marigold-hover); }
 .btn-outline { background: transparent; border: 1px solid var(--border-colour); color: var(--text-colour); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
+
+/* --- TOAST NOTIFICATIONS --- */
+#toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #121212;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    max-width: 90vw;
+    text-align: center;
+    white-space: pre-line;
+}
+
+.toast-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast-success { background-color: var(--marigold); }
+.toast-error   { background-color: #EF4444; color: #fff; }
+
+/* --- VARIANT PRICE LABEL --- */
+.variant-btn {
+    padding: 0.55rem 1rem;
+    border: 2px solid var(--border-colour);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--bg-colour);
+    color: var(--text-colour);
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+.variant-btn:hover:not(:disabled) { border-color: var(--marigold); }
+.variant-btn.selected { border-color: var(--marigold); background-color: var(--marigold); color: #121212; }
+.variant-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.variant-price-label { font-size: 0.82rem; font-weight: 700; color: var(--marigold); }
+.variant-btn.selected .variant-price-label { color: #121212; }
+.variant-stock-label { font-size: 0.72rem; font-weight: 400; opacity: 0.8; }
