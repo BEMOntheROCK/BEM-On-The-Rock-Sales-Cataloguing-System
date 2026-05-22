@@ -35,7 +35,7 @@
                 <div class="form-group price-toggle-group">
                     <label class="toggle-label">
                         <div class="toggle-switch">
-                            <input type="checkbox" id="unified-price-toggle">
+                            <input type="checkbox" id="unified-price-toggle" checked>
                             <span class="toggle-slider"></span>
                         </div>
                         <span>Same price for all variations</span>
@@ -151,6 +151,12 @@
                     <div class="form-group">
                         <label>Variations & Stock Levels</label>
                         <p class="helper-text">Deleting a variation with remaining stock will permanently remove those units.</p>
+                        <div class="variation-header" id="edit-variation-header">
+                            <span class="vh-name">Variation Name</span>
+                            <span class="vh-price">Price (RM)</span>
+                            <span class="vh-stock">Stock</span>
+                            <span class="vh-del"></span>
+                        </div>
                         <div id="edit-variations-container"></div>
                         <button type="button" id="edit-add-variation-btn" class="btn-outline add-btn">+ Add Another Variation</button>
                     </div>

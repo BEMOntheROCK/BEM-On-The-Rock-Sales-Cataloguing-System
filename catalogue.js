@@ -96,9 +96,12 @@ function setupPriceToggle({ toggleId, unifiedGroupId, unifiedInputId, containerI
         container.querySelectorAll('.var-price').forEach(el => {
             el.required = !on;
         });
-        // Update column headers if present
+        // Hide just the price column header label, not the whole header row
         const header = document.getElementById(headerSuffixId);
-        if (header) header.classList.toggle('hidden', on);
+        if (header) {
+            const priceLabel = header.querySelector('.vh-price');
+            if (priceLabel) priceLabel.classList.toggle('hidden', on);
+        }
     }
 
     toggle.addEventListener('change', apply);
@@ -175,12 +178,13 @@ const addPriceToggle = setupPriceToggle({
     unifiedGroupId: 'unified-price-group',
     unifiedInputId: 'product-price',
     containerId: 'variations-container',
-    headerSuffixId: null
+    headerSuffixId: 'add-variation-header'
 });
 
 // Insert column header row above variations
 const addHeader = document.createElement('div');
 addHeader.className = 'variation-header';
+addHeader.id = 'add-variation-header';
 addHeader.innerHTML = `
     <span class="vh-name">Variation Name</span>
     <span class="vh-price">Price (RM)</span>
@@ -227,7 +231,7 @@ productForm.addEventListener('submit', async (e) => {
         showToast(`✅ "${name}" added to catalogue!`);
 
         productForm.reset();
-        addPriceToggle.setToggle(false);
+        addPriceToggle.setToggle(true);
         resetVariationsContainer(variationsContainer, false);
         addImage.reset();
         loadInventory();
@@ -329,7 +333,7 @@ const editPriceToggle = setupPriceToggle({
     unifiedGroupId: 'edit-unified-price-group',
     unifiedInputId: 'edit-price',
     containerId: 'edit-variations-container',
-    headerSuffixId: null
+    headerSuffixId: 'edit-variation-header'
 });
 
 let currentEditId = null;
