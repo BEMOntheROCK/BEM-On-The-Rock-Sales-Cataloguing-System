@@ -26,7 +26,7 @@
 
 body {
     background-color: var(--bg-colour);
-    background-image: linear-gradient(var(--bg-overlay), var(--bg-overlay)), url('images/background-catalogue.jpg');
+    background-image: url('images/background-catalogue.jpg');
     background-size: cover;
     background-position: center top;
     background-attachment: fixed;
