@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROCS - Sales Tracker</title>
+    <link rel="icon" href="images/favicon-catalogue.png" type="image/png">
+    <link rel="stylesheet" href="sales.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="brand">
+            <span class="font-bem">BEM</span>
+            <span class="font-rock">On The Rock</span>
+            <span class="app-title">| Sales Tracker</span>
+        </div>
+        <div class="nav-controls">
+            <a href="index.html" class="nav-link">🛒 Checkout</a>
+            <a href="catalogue.html" class="nav-link">📦 Catalogue</a>
+            <button id="theme-toggle" class="btn-outline">🌙 Dark Mode</button>
+        </div>
+    </header>
+
+    <!-- CLEANUP STATUS -->
+    <div id="cleanup-banner" class="cleanup-banner hidden">
+        <span id="cleanup-message">🔍 Checking for old records...</span>
+    </div>
+
+    <main class="container">
+
+        <!-- 90-DAY REMINDER BANNER -->
+        <div class="reminder-banner">
+            <span class="reminder-icon">⚠️</span>
+            <div class="reminder-text">
+                <strong>Data Retention Notice:</strong> Sales records older than 90 days are automatically deleted to conserve database storage.
+                Please <strong>export or print</strong> your transaction history regularly to keep a physical record.
+            </div>
+            <button class="btn-print" onclick="window.print()">🖨️ Print</button>
+        </div>
+
+        <!-- SUMMARY SECTION -->
+        <section class="summary-section">
+            <div class="summary-header">
+                <h2>Sales Summary</h2>
+                <div class="period-toggle">
+                    <button class="period-btn active" data-period="today">Today</button>
+                    <button class="period-btn" data-period="week">This Week</button>
+                    <button class="period-btn" data-period="month">This Month</button>
+                </div>
+            </div>
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="card-label">Total Revenue</div>
+                    <div class="card-value" id="stat-revenue">RM 0.00</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">Transactions</div>
+                    <div class="card-value" id="stat-transactions">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">Units Sold</div>
+                    <div class="card-value" id="stat-units">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">Top Payment</div>
+                    <div class="card-value" id="stat-top-payment">—</div>
+                </div>
+            </div>
+
+            <!-- Payment method breakdown -->
+            <div class="payment-breakdown" id="payment-breakdown"></div>
+        </section>
+
+        <!-- TRANSACTION HISTORY -->
+        <section class="history-section">
+            <div class="history-header">
+                <h2>Transaction History</h2>
+                <button id="export-btn" class="btn-export">📥 Export to Excel</button>
+            </div>
+
+            <!-- FILTERS -->
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="filter-from">From</label>
+                    <input type="date" id="filter-from">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-to">To</label>
+                    <input type="date" id="filter-to">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-payment">Payment</label>
+                    <select id="filter-payment">
+                        <option value="">All Methods</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Credit">Credit/Debit</option>
+                        <option value="Online Banking">Online Transfer</option>
+                        <option value="QR DuitNow">QR DuitNow</option>
+                    </select>
+                </div>
+                <div class="filter-group filter-search">
+                    <label for="filter-product">Product</label>
+                    <input type="text" id="filter-product" placeholder="Search product name...">
+                </div>
+                <button id="clear-filters-btn" class="btn-clear-filters">✕ Clear</button>
+            </div>
+
+            <!-- RESULTS COUNT -->
+            <p id="results-count" class="results-count"></p>
+
+            <!-- TABLE -->
+            <div class="table-responsive">
+                <table id="sales-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Product</th>
+                            <th>Variation</th>
+                            <th>Qty</th>
+                            <th>Payment</th>
+                            <th>Total (RM)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sales-body">
+                        <tr><td colspan="6" class="table-empty">Loading sales records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <div id="toast-container"></div>
+    <script type="module" src="sales.js"></script>
+</body>
+</html>
