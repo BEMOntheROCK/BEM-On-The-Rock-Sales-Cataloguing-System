@@ -10,7 +10,7 @@
 <body>
     <header class="navbar">
         <div class="brand">
-            <span class="font-bem">BEM</span> 
+            <span class="font-bem">BEM</span>
             <span class="font-rock">On The Rock</span>
             <span class="app-title">| Checkout Dashboard</span>
         </div>
@@ -21,66 +21,89 @@
         </div>
     </header>
 
-    <main class="container">
-        <section class="checkout-panel">
+    <main class="checkout-layout">
+
+        <!-- LEFT: Item Selection (65%) -->
+        <section class="selection-panel">
             <h2>Log a Sale</h2>
-            
-            <form id="checkout-form">
 
-                <!-- STEP 1: Product card grid -->
-                <div class="form-group">
-                    <label>Select Item</label>
-                    <div id="product-grid" class="product-grid">
-                        <p class="grid-loading">Loading inventory...</p>
-                    </div>
+            <div class="form-group">
+                <label>Select Item</label>
+                <div id="product-grid" class="product-grid">
+                    <p class="grid-loading">Loading inventory...</p>
                 </div>
+            </div>
 
-                <!-- STEP 2: Variant selector — shown only when selected product has multiple variants -->
-                <div class="form-group hidden" id="variant-group">
-                    <label>Select Variation</label>
-                    <div id="variant-grid" class="variant-grid"></div>
+            <!-- Variant selector — shown only when selected product has multiple variants -->
+            <div class="form-group hidden" id="variant-group">
+                <label>Select Variation</label>
+                <div id="variant-grid" class="variant-grid"></div>
+            </div>
+
+            <!-- Quantity — shown after item (and variant if needed) is selected -->
+            <div class="form-group hidden" id="quantity-group">
+                <label for="quantity">Quantity</label>
+                <div class="quantity-row">
+                    <button type="button" id="qty-minus" class="qty-btn">−</button>
+                    <input type="number" id="quantity" min="1" value="1">
+                    <button type="button" id="qty-plus" class="qty-btn">+</button>
                 </div>
+                <p class="stock-hint" id="stock-hint"></p>
+            </div>
 
-                <!-- STEP 3: Quantity + Total — shown after item (and variant if needed) is selected -->
-                <div id="quantity-group" class="hidden">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="quantity">Quantity</label>
-                            <input type="number" id="quantity" min="1" value="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Total Price (RM)</label>
-                            <div class="total-display" id="total-price">0.00</div>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Payment Method</label>
-                        <div class="payment-grid">
-                            <label class="payment-option">
-                                <input type="radio" name="payment" value="Cash" checked>
-                                <span class="payment-btn">Cash</span>
-                            </label>
-                            <label class="payment-option">
-                                <input type="radio" name="payment" value="Credit">
-                                <span class="payment-btn">Credit/Debit</span>
-                            </label>
-                            <label class="payment-option">
-                                <input type="radio" name="payment" value="Online Banking">
-                                <span class="payment-btn">Online Transfer</span>
-                            </label>
-                            <label class="payment-option">
-                                <input type="radio" name="payment" value="QR DuitNow">
-                                <span class="payment-btn">QR DuitNow</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-primary">Complete Transaction</button>
-                </div>
-
-            </form>
+            <!-- Add to Cart -->
+            <button type="button" id="add-to-cart-btn" class="btn-add-cart hidden">
+                + Add to Cart
+            </button>
         </section>
+
+        <!-- RIGHT: Cart (35%) -->
+        <aside class="cart-panel">
+            <div class="cart-header">
+                <h2>🛒 Cart</h2>
+                <button id="clear-cart-btn" class="btn-clear-cart hidden">Clear All</button>
+            </div>
+
+            <!-- Cart items -->
+            <div id="cart-items" class="cart-items">
+                <p class="cart-empty">No items added yet.</p>
+            </div>
+
+            <!-- Cart footer: total + payment + submit -->
+            <div class="cart-footer">
+                <div class="grand-total-row">
+                    <span>Grand Total</span>
+                    <span id="grand-total" class="grand-total-value">RM 0.00</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <div class="payment-grid">
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="Cash" checked>
+                            <span class="payment-btn">Cash</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="Credit">
+                            <span class="payment-btn">Credit/Debit</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="Online Banking">
+                            <span class="payment-btn">Online Transfer</span>
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="QR DuitNow">
+                            <span class="payment-btn">QR DuitNow</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button type="button" id="complete-btn" class="btn-primary" disabled>
+                    Complete Transaction
+                </button>
+            </div>
+        </aside>
+
     </main>
 
     <div id="toast-container"></div>

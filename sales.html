@@ -28,7 +28,7 @@
 
     <main class="container">
 
-        <!-- 90-DAY REMINDER BANNER -->
+        <!-- 90-DAY REMINDER -->
         <div class="reminder-banner">
             <span class="reminder-icon">⚠️</span>
             <div class="reminder-text">
@@ -38,7 +38,7 @@
             <button class="btn-print" onclick="window.print()">🖨️ Print</button>
         </div>
 
-        <!-- SUMMARY SECTION -->
+        <!-- SUMMARY -->
         <section class="summary-section">
             <div class="summary-header">
                 <h2>Sales Summary</h2>
@@ -66,8 +66,6 @@
                     <div class="card-value" id="stat-top-payment">—</div>
                 </div>
             </div>
-
-            <!-- Payment method breakdown -->
             <div class="payment-breakdown" id="payment-breakdown"></div>
         </section>
 
@@ -78,7 +76,6 @@
                 <button id="export-btn" class="btn-export">📥 Export to Excel</button>
             </div>
 
-            <!-- FILTERS -->
             <div class="filters-row">
                 <div class="filter-group">
                     <label for="filter-from">From</label>
@@ -105,24 +102,21 @@
                 <button id="clear-filters-btn" class="btn-clear-filters">✕ Clear</button>
             </div>
 
-            <!-- RESULTS COUNT -->
             <p id="results-count" class="results-count"></p>
 
-            <!-- TABLE -->
             <div class="table-responsive">
                 <table id="sales-table">
                     <thead>
                         <tr>
+                            <th></th><!-- expand toggle -->
                             <th>Date & Time</th>
-                            <th>Product</th>
-                            <th>Variation</th>
-                            <th>Qty</th>
+                            <th>Items</th>
                             <th>Payment</th>
-                            <th>Total (RM)</th>
+                            <th>Grand Total (RM)</th>
                         </tr>
                     </thead>
                     <tbody id="sales-body">
-                        <tr><td colspan="6" class="table-empty">Loading sales records...</td></tr>
+                        <tr><td colspan="5" class="table-empty">Loading sales records...</td></tr>
                     </tbody>
                 </table>
             </div>

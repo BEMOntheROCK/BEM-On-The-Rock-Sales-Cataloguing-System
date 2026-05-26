@@ -340,3 +340,31 @@ tr:hover td { background: var(--bg-colour); }
     .summary-section, .history-section { box-shadow: none; border: 1px solid #ccc; }
     .reminder-banner { border: 1px solid #ccc; background: #fff8e1; }
 }
+
+/* --- TRANSACTION TABLE EXPAND --- */
+.expand-cell { width: 40px; text-align: center; }
+.expand-btn {
+    background: none; border: 1px solid var(--border-colour);
+    border-radius: 4px; cursor: pointer; color: var(--muted-text);
+    font-size: 0.7rem; padding: 0.2rem 0.4rem;
+    transition: background 0.15s, color 0.15s;
+}
+.expand-btn:hover, .expand-btn.expanded {
+    background: var(--marigold); color: #121212; border-color: var(--marigold);
+}
+.items-summary { font-size: 0.88rem; color: var(--muted-text); }
+
+.tx-detail-row td { padding: 0 !important; border-bottom: 2px solid var(--marigold); }
+.tx-detail-cell { padding: 0 !important; }
+
+.line-items-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--bg-colour); font-size: 0.85rem;
+}
+.line-items-table th {
+    padding: 0.5rem 1rem; background: var(--border-colour);
+    color: var(--muted-text); font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
+.line-items-table td { padding: 0.5rem 1rem; border-bottom: 1px solid var(--border-colour); }
+.line-items-table tr:last-child td { border-bottom: none; }

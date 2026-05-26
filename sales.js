@@ -3,21 +3,13 @@ import {
     collection, getDocs, deleteDoc, doc, query, orderBy, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// --- THEME TOGGLE ---
+// --- THEME ---
 const themeToggleBtn = document.getElementById('theme-toggle');
 const rootElement = document.documentElement;
 let isDarkMode = localStorage.getItem('theme') === 'dark';
-
 function updateTheme() {
-    if (isDarkMode) {
-        rootElement.setAttribute('data-theme', 'dark');
-        themeToggleBtn.innerText = '☀️ Light Mode';
-        localStorage.setItem('theme', 'dark');
-    } else {
-        rootElement.removeAttribute('data-theme');
-        themeToggleBtn.innerText = '🌙 Dark Mode';
-        localStorage.setItem('theme', 'light');
-    }
+    if (isDarkMode) { rootElement.setAttribute('data-theme', 'dark'); themeToggleBtn.innerText = '☀️ Light Mode'; localStorage.setItem('theme', 'dark'); }
+    else { rootElement.removeAttribute('data-theme'); themeToggleBtn.innerText = '🌙 Dark Mode'; localStorage.setItem('theme', 'light'); }
 }
 updateTheme();
 themeToggleBtn.addEventListener('click', () => { isDarkMode = !isDarkMode; updateTheme(); });
@@ -30,104 +22,95 @@ function showToast(message, type = 'success') {
     toast.textContent = message;
     container.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('toast-visible'));
-    setTimeout(() => {
-        toast.classList.remove('toast-visible');
-        toast.addEventListener('transitionend', () => toast.remove());
-    }, 3000);
+    setTimeout(() => { toast.classList.remove('toast-visible'); toast.addEventListener('transitionend', () => toast.remove()); }, 3000);
 }
 
 // --- STATE ---
-let allSales = []; // All sales fetched from Firestore (after cleanup)
+let allSales = [];
 let activePeriod = 'today';
 
 // --- DATE HELPERS ---
 function startOf(period) {
     const now = new Date();
-    if (period === 'today') {
-        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    }
+    if (period === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     if (period === 'week') {
-        const day = now.getDay(); // 0=Sun
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
         return new Date(now.getFullYear(), now.getMonth(), diff);
     }
-    if (period === 'month') {
-        return new Date(now.getFullYear(), now.getMonth(), 1);
-    }
+    if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
 function formatDateTime(ts) {
     if (!ts) return '—';
     const d = ts.toDate ? ts.toDate() : new Date(ts);
-    return d.toLocaleString('en-MY', {
-        day: '2-digit', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true
-    });
+    return d.toLocaleString('en-MY', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
-function formatDateForInput(date) {
-    return date.toISOString().split('T')[0];
-}
+function formatDateForInput(date) { return date.toISOString().split('T')[0]; }
 
-// --- 90-DAY CLEANUP ---
+// --- CLEANUP ---
 async function cleanupOldRecords() {
     const cleanupBanner = document.getElementById('cleanup-banner');
     const cleanupMessage = document.getElementById('cleanup-message');
-
     cleanupBanner.classList.remove('hidden');
     cleanupMessage.textContent = '🔍 Checking for old records...';
-
     try {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 90);
-        const cutoffTimestamp = Timestamp.fromDate(cutoff);
-
-        const oldQuery = query(
-            collection(db, 'sales'),
-            where('timestamp', '<', cutoffTimestamp)
-        );
+        const oldQuery = query(collection(db, 'sales'), where('timestamp', '<', Timestamp.fromDate(cutoff)));
         const snapshot = await getDocs(oldQuery);
-
         if (snapshot.empty) {
             cleanupMessage.textContent = '✅ All records are up to date. No old data to remove.';
         } else {
-            // Delete all records older than 90 days
-            const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, 'sales', d.id)));
-            await Promise.all(deletePromises);
+            await Promise.all(snapshot.docs.map(d => deleteDoc(doc(db, 'sales', d.id))));
             cleanupMessage.textContent = `🗑️ ${snapshot.size} record(s) older than 90 days were automatically removed.`;
         }
-
-        // Fade out the banner after 5 seconds
         setTimeout(() => {
             cleanupBanner.style.transition = 'opacity 0.5s';
             cleanupBanner.style.opacity = '0';
             setTimeout(() => cleanupBanner.classList.add('hidden'), 500);
         }, 5000);
-
     } catch (err) {
         console.error('Cleanup failed:', err);
-        cleanupMessage.textContent = '⚠️ Could not check for old records. Please try again later.';
+        cleanupMessage.textContent = '⚠️ Could not check for old records.';
     }
 }
 
-// --- FETCH ALL SALES ---
+// --- LOAD SALES ---
 async function loadSales() {
     try {
         const q = query(collection(db, 'sales'), orderBy('timestamp', 'desc'));
         const snapshot = await getDocs(q);
         allSales = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-
         updateSummary();
         applyFilters();
     } catch (err) {
-        console.error('Failed to load sales:', err);
-        document.getElementById('sales-body').innerHTML =
-            '<tr><td colspan="6" class="table-empty">Error loading sales records.</td></tr>';
+        console.error(err);
+        document.getElementById('sales-body').innerHTML = '<tr><td colspan="5" class="table-empty">Error loading records.</td></tr>';
         showToast('❌ Failed to load sales data.', 'error');
     }
 }
 
-// --- SUMMARY CARDS ---
+// --- SUMMARY ---
+// Helper: get all line items from a transaction (supports both old flat structure and new items array)
+function getItems(sale) {
+    if (sale.items && Array.isArray(sale.items)) return sale.items;
+    // Legacy single-item record
+    return [{
+        productName:   sale.productName || '—',
+        variationName: sale.variationName || '—',
+        quantity:      sale.quantity || 0,
+        unitPrice:     sale.unitPrice || 0,
+        lineTotal:     sale.totalPaid || 0
+    }];
+}
+
+function getGrandTotal(sale) {
+    if (sale.grandTotal !== undefined) return sale.grandTotal;
+    return sale.totalPaid || 0;
+}
+
 function updateSummary() {
     const start = startOf(activePeriod);
     const periodSales = allSales.filter(sale => {
@@ -136,45 +119,35 @@ function updateSummary() {
         return d >= start;
     });
 
-    const revenue = periodSales.reduce((sum, s) => sum + (s.totalPaid || 0), 0);
-    const units = periodSales.reduce((sum, s) => sum + (s.quantity || 0), 0);
+    const revenue = periodSales.reduce((sum, s) => sum + getGrandTotal(s), 0);
+    const units = periodSales.reduce((sum, s) => sum + getItems(s).reduce((a, i) => a + i.quantity, 0), 0);
 
     document.getElementById('stat-revenue').textContent = `RM ${revenue.toFixed(2)}`;
     document.getElementById('stat-transactions').textContent = periodSales.length;
     document.getElementById('stat-units').textContent = units;
 
-    // Payment method breakdown
     const methodTotals = {};
     periodSales.forEach(s => {
         const m = s.paymentMethod || 'Unknown';
-        methodTotals[m] = (methodTotals[m] || 0) + (s.totalPaid || 0);
+        methodTotals[m] = (methodTotals[m] || 0) + getGrandTotal(s);
     });
 
-    // Top payment method
     const topMethod = Object.entries(methodTotals).sort((a, b) => b[1] - a[1])[0];
     document.getElementById('stat-top-payment').textContent = topMethod ? topMethod[0] : '—';
 
-    // Payment breakdown pills
     const breakdown = document.getElementById('payment-breakdown');
     breakdown.innerHTML = '';
-    Object.entries(methodTotals)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([method, total]) => {
-            const pill = document.createElement('div');
-            pill.className = 'payment-pill';
-            pill.innerHTML = `
-                <span class="payment-pill-label">${method}</span>
-                <span class="payment-pill-value">RM ${total.toFixed(2)}</span>
-            `;
-            breakdown.appendChild(pill);
-        });
-
-    if (Object.keys(methodTotals).length === 0) {
+    Object.entries(methodTotals).sort((a, b) => b[1] - a[1]).forEach(([method, total]) => {
+        const pill = document.createElement('div');
+        pill.className = 'payment-pill';
+        pill.innerHTML = `<span class="payment-pill-label">${method}</span><span class="payment-pill-value">RM ${total.toFixed(2)}</span>`;
+        breakdown.appendChild(pill);
+    });
+    if (!Object.keys(methodTotals).length) {
         breakdown.innerHTML = '<span style="font-size:0.85rem;color:var(--muted-text);">No sales in this period.</span>';
     }
 }
 
-// --- PERIOD TOGGLE ---
 document.querySelectorAll('.period-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -185,74 +158,125 @@ document.querySelectorAll('.period-btn').forEach(btn => {
 });
 
 // --- FILTERS ---
-const filterFrom = document.getElementById('filter-from');
-const filterTo = document.getElementById('filter-to');
+const filterFrom    = document.getElementById('filter-from');
+const filterTo      = document.getElementById('filter-to');
 const filterPayment = document.getElementById('filter-payment');
 const filterProduct = document.getElementById('filter-product');
-const salesBody = document.getElementById('sales-body');
-const resultsCount = document.getElementById('results-count');
+const salesBody     = document.getElementById('sales-body');
+const resultsCount  = document.getElementById('results-count');
 
-// Set default filter range to last 30 days
 const today = new Date();
-const thirtyDaysAgo = new Date();
-thirtyDaysAgo.setDate(today.getDate() - 30);
+const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(today.getDate() - 30);
 filterFrom.value = formatDateForInput(thirtyDaysAgo);
-filterTo.value = formatDateForInput(today);
+filterTo.value   = formatDateForInput(today);
 
 function applyFilters() {
-    const fromDate = filterFrom.value ? new Date(filterFrom.value) : null;
-    // Set to end of the "to" day so we include the full day
-    const toDate = filterTo.value ? new Date(filterTo.value + 'T23:59:59') : null;
-    const paymentFilter = filterPayment.value;
-    const productFilter = filterProduct.value.toLowerCase().trim();
+    const fromDate   = filterFrom.value ? new Date(filterFrom.value) : null;
+    const toDate     = filterTo.value   ? new Date(filterTo.value + 'T23:59:59') : null;
+    const payFilter  = filterPayment.value;
+    const prodFilter = filterProduct.value.toLowerCase().trim();
 
     const filtered = allSales.filter(sale => {
-        const saleDate = sale.timestamp
-            ? (sale.timestamp.toDate ? sale.timestamp.toDate() : new Date(sale.timestamp))
-            : null;
-
+        const saleDate = sale.timestamp ? (sale.timestamp.toDate ? sale.timestamp.toDate() : new Date(sale.timestamp)) : null;
         if (fromDate && saleDate && saleDate < fromDate) return false;
-        if (toDate && saleDate && saleDate > toDate) return false;
-        if (paymentFilter && sale.paymentMethod !== paymentFilter) return false;
-        if (productFilter && !sale.productName?.toLowerCase().includes(productFilter)) return false;
-
+        if (toDate   && saleDate && saleDate > toDate)   return false;
+        if (payFilter && sale.paymentMethod !== payFilter) return false;
+        // Product filter: check if any line item matches
+        if (prodFilter) {
+            const items = getItems(sale);
+            const match = items.some(i => i.productName?.toLowerCase().includes(prodFilter));
+            if (!match) return false;
+        }
         return true;
     });
 
     renderTable(filtered);
-    resultsCount.textContent = `Showing ${filtered.length} of ${allSales.length} record(s)`;
+    resultsCount.textContent = `Showing ${filtered.length} of ${allSales.length} transaction(s)`;
 }
 
+// --- TABLE RENDER ---
+// Each transaction is one row; clicking it expands to show line items
 function renderTable(sales) {
+    salesBody.innerHTML = '';
     if (sales.length === 0) {
-        salesBody.innerHTML = '<tr><td colspan="6" class="table-empty">No records match your filters.</td></tr>';
+        salesBody.innerHTML = '<tr><td colspan="5" class="table-empty">No records match your filters.</td></tr>';
         return;
     }
 
-    salesBody.innerHTML = '';
-    sales.forEach(sale => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
+    sales.forEach((sale, idx) => {
+        const items = getItems(sale);
+        const grandTotal = getGrandTotal(sale);
+        const itemSummary = items.length === 1
+            ? `${items[0].productName} — ${items[0].variationName} × ${items[0].quantity}`
+            : `${items.length} items`;
+
+        const rowId = `tx-${idx}`;
+
+        // Main transaction row
+        const mainRow = document.createElement('tr');
+        mainRow.className = 'tx-row';
+        mainRow.innerHTML = `
+            <td class="expand-cell">
+                <button class="expand-btn" data-target="${rowId}" title="Show items">▶</button>
+            </td>
             <td>${formatDateTime(sale.timestamp)}</td>
-            <td>${sale.productName || '—'}</td>
-            <td>${sale.variationName || '—'}</td>
-            <td>${sale.quantity || 0}</td>
+            <td class="items-summary">${itemSummary}</td>
             <td><span class="payment-badge">${sale.paymentMethod || '—'}</span></td>
-            <td class="total-cell">RM ${(sale.totalPaid || 0).toFixed(2)}</td>
+            <td class="total-cell">RM ${grandTotal.toFixed(2)}</td>
         `;
-        salesBody.appendChild(row);
+
+        // Expandable line items row (hidden by default)
+        const detailRow = document.createElement('tr');
+        detailRow.className = 'tx-detail-row hidden';
+        detailRow.id = rowId;
+        detailRow.innerHTML = `
+            <td colspan="5" class="tx-detail-cell">
+                <table class="line-items-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Variation</th>
+                            <th>Qty</th>
+                            <th>Unit Price</th>
+                            <th>Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(i => `
+                            <tr>
+                                <td>${i.productName || '—'}</td>
+                                <td>${i.variationName || '—'}</td>
+                                <td>${i.quantity}</td>
+                                <td>RM ${(i.unitPrice || 0).toFixed(2)}</td>
+                                <td>RM ${(i.lineTotal || i.unitPrice * i.quantity || 0).toFixed(2)}</td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+            </td>
+        `;
+
+        // Toggle expand on button click
+        mainRow.querySelector('.expand-btn').addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            const isExpanded = !detailRow.classList.contains('hidden');
+            detailRow.classList.toggle('hidden', isExpanded);
+            btn.textContent = isExpanded ? '▶' : '▼';
+            btn.classList.toggle('expanded', !isExpanded);
+        });
+
+        salesBody.appendChild(mainRow);
+        salesBody.appendChild(detailRow);
     });
 }
 
-// Attach filter listeners
 filterFrom.addEventListener('change', applyFilters);
 filterTo.addEventListener('change', applyFilters);
 filterPayment.addEventListener('change', applyFilters);
 filterProduct.addEventListener('input', applyFilters);
 
 document.getElementById('clear-filters-btn').addEventListener('click', () => {
-    filterFrom.value = formatDateForInput(thirtyDaysAgo);
-    filterTo.value = formatDateForInput(today);
+    filterFrom.value   = formatDateForInput(thirtyDaysAgo);
+    filterTo.value     = formatDateForInput(today);
     filterPayment.value = '';
     filterProduct.value = '';
     applyFilters();
@@ -261,72 +285,67 @@ document.getElementById('clear-filters-btn').addEventListener('click', () => {
 // --- EXPORT TO EXCEL ---
 document.getElementById('export-btn').addEventListener('click', async () => {
     const exportBtn = document.getElementById('export-btn');
-
-    // Get currently filtered rows
-    const fromDate = filterFrom.value ? new Date(filterFrom.value) : null;
-    const toDate = filterTo.value ? new Date(filterTo.value + 'T23:59:59') : null;
-    const paymentFilter = filterPayment.value;
-    const productFilter = filterProduct.value.toLowerCase().trim();
+    const fromDate   = filterFrom.value ? new Date(filterFrom.value) : null;
+    const toDate     = filterTo.value   ? new Date(filterTo.value + 'T23:59:59') : null;
+    const payFilter  = filterPayment.value;
+    const prodFilter = filterProduct.value.toLowerCase().trim();
 
     const filtered = allSales.filter(sale => {
-        const saleDate = sale.timestamp
-            ? (sale.timestamp.toDate ? sale.timestamp.toDate() : new Date(sale.timestamp))
-            : null;
+        const saleDate = sale.timestamp ? (sale.timestamp.toDate ? sale.timestamp.toDate() : new Date(sale.timestamp)) : null;
         if (fromDate && saleDate && saleDate < fromDate) return false;
-        if (toDate && saleDate && saleDate > toDate) return false;
-        if (paymentFilter && sale.paymentMethod !== paymentFilter) return false;
-        if (productFilter && !sale.productName?.toLowerCase().includes(productFilter)) return false;
+        if (toDate   && saleDate && saleDate > toDate)   return false;
+        if (payFilter && sale.paymentMethod !== payFilter) return false;
+        if (prodFilter) {
+            const items = getItems(sale);
+            if (!items.some(i => i.productName?.toLowerCase().includes(prodFilter))) return false;
+        }
         return true;
     });
 
-    if (filtered.length === 0) {
-        showToast('No records to export.', 'error');
-        return;
-    }
+    if (!filtered.length) { showToast('No records to export.', 'error'); return; }
 
-    exportBtn.disabled = true;
-    exportBtn.textContent = 'Exporting...';
-
+    exportBtn.disabled = true; exportBtn.textContent = 'Exporting...';
     try {
-        // Dynamically load SheetJS from CDN
         const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs');
 
-        const rows = filtered.map(sale => ({
-            'Date & Time': formatDateTime(sale.timestamp),
-            'Product': sale.productName || '—',
-            'Variation': sale.variationName || '—',
-            'Qty': sale.quantity || 0,
-            'Payment Method': sale.paymentMethod || '—',
-            'Total (RM)': (sale.totalPaid || 0).toFixed(2)
-        }));
+        // Flatten: one row per line item, grouped under its transaction
+        const rows = [];
+        filtered.forEach(sale => {
+            const items = getItems(sale);
+            items.forEach((item, idx) => {
+                rows.push({
+                    'Date & Time':    idx === 0 ? formatDateTime(sale.timestamp) : '',
+                    'Payment Method': idx === 0 ? (sale.paymentMethod || '—') : '',
+                    'Grand Total (RM)': idx === 0 ? getGrandTotal(sale).toFixed(2) : '',
+                    'Product':        item.productName || '—',
+                    'Variation':      item.variationName || '—',
+                    'Qty':            item.quantity,
+                    'Unit Price (RM)': (item.unitPrice || 0).toFixed(2),
+                    'Line Total (RM)': (item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2)
+                });
+            });
+        });
 
         const worksheet = XLSX.utils.json_to_sheet(rows);
-        const workbook = XLSX.utils.book_new();
+        const workbook  = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales');
-
-        // Auto-size columns
-        const colWidths = Object.keys(rows[0]).map(key => ({
-            wch: Math.max(key.length, ...rows.map(r => String(r[key]).length)) + 2
-        }));
+        const colWidths = Object.keys(rows[0]).map(key => ({ wch: Math.max(key.length, ...rows.map(r => String(r[key]).length)) + 2 }));
         worksheet['!cols'] = colWidths;
 
         const fileName = `ROCS_Sales_${formatDateForInput(new Date())}.xlsx`;
         XLSX.writeFile(workbook, fileName);
-
-        showToast(`✅ Exported ${filtered.length} record(s) to ${fileName}`);
+        showToast(`✅ Exported ${filtered.length} transaction(s) to ${fileName}`);
     } catch (err) {
-        console.error('Export failed:', err);
+        console.error(err);
         showToast('❌ Export failed. Please try again.', 'error');
     } finally {
-        exportBtn.disabled = false;
-        exportBtn.textContent = '📥 Export to Excel';
+        exportBtn.disabled = false; exportBtn.textContent = '📥 Export to Excel';
     }
 });
 
 // --- BOOT ---
 async function init() {
-    await cleanupOldRecords(); // Clean first, then load what remains
+    await cleanupOldRecords();
     await loadSales();
 }
-
 init();
