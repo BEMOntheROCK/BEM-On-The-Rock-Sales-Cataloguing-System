@@ -1,6 +1,7 @@
 import { db } from './firebase.js';
 import {
-    collection, getDocs, deleteDoc, doc, query, orderBy, where, Timestamp
+    collection, getDocs, deleteDoc, doc, runTransaction,
+    query, orderBy, where, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- THEME ---
@@ -22,7 +23,7 @@ function showToast(message, type = 'success') {
     toast.textContent = message;
     container.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('toast-visible'));
-    setTimeout(() => { toast.classList.remove('toast-visible'); toast.addEventListener('transitionend', () => toast.remove()); }, 3000);
+    setTimeout(() => { toast.classList.remove('toast-visible'); toast.addEventListener('transitionend', () => toast.remove()); }, 3500);
 }
 
 // --- STATE ---
@@ -35,8 +36,7 @@ function startOf(period) {
     if (period === 'today') return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     if (period === 'week') {
         const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        return new Date(now.getFullYear(), now.getMonth(), diff);
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + (day === 0 ? -6 : 1));
     }
     if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
 }
@@ -51,15 +51,15 @@ function formatDateForInput(date) { return date.toISOString().split('T')[0]; }
 
 // --- CLEANUP ---
 async function cleanupOldRecords() {
-    const cleanupBanner = document.getElementById('cleanup-banner');
+    const cleanupBanner  = document.getElementById('cleanup-banner');
     const cleanupMessage = document.getElementById('cleanup-message');
     cleanupBanner.classList.remove('hidden');
     cleanupMessage.textContent = '🔍 Checking for old records...';
     try {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 90);
-        const oldQuery = query(collection(db, 'sales'), where('timestamp', '<', Timestamp.fromDate(cutoff)));
-        const snapshot = await getDocs(oldQuery);
+        const oldQuery  = query(collection(db, 'sales'), where('timestamp', '<', Timestamp.fromDate(cutoff)));
+        const snapshot  = await getDocs(oldQuery);
         if (snapshot.empty) {
             cleanupMessage.textContent = '✅ All records are up to date. No old data to remove.';
         } else {
@@ -87,30 +87,75 @@ async function loadSales() {
         applyFilters();
     } catch (err) {
         console.error(err);
-        document.getElementById('sales-body').innerHTML = '<tr><td colspan="5" class="table-empty">Error loading records.</td></tr>';
+        document.getElementById('sales-body').innerHTML = '<tr><td colspan="6" class="table-empty">Error loading records.</td></tr>';
         showToast('❌ Failed to load sales data.', 'error');
     }
 }
 
-// --- SUMMARY ---
-// Helper: get all line items from a transaction (supports both old flat structure and new items array)
+// --- STRUCTURE HELPERS (supports old flat + new items-array records) ---
 function getItems(sale) {
     if (sale.items && Array.isArray(sale.items)) return sale.items;
-    // Legacy single-item record
     return [{
-        productName:   sale.productName || '—',
+        productId:     sale.productId,
+        productName:   sale.productName   || '—',
         variationName: sale.variationName || '—',
-        quantity:      sale.quantity || 0,
-        unitPrice:     sale.unitPrice || 0,
-        lineTotal:     sale.totalPaid || 0
+        varIndex:      sale.varIndex      ?? null,
+        quantity:      sale.quantity      || 0,
+        unitPrice:     sale.unitPrice     || 0,
+        lineTotal:     sale.totalPaid     || 0
     }];
 }
 
 function getGrandTotal(sale) {
-    if (sale.grandTotal !== undefined) return sale.grandTotal;
-    return sale.totalPaid || 0;
+    return sale.grandTotal !== undefined ? sale.grandTotal : (sale.totalPaid || 0);
 }
 
+// --- DELETE TRANSACTION + PARTIAL STOCK REVERT ---
+async function handleDeleteTransaction(sale) {
+    if (!confirm(`Delete this transaction (${formatDateTime(sale.timestamp)})?\n\nStock will be restored for any items still in the catalogue.`)) return;
+
+    const items = getItems(sale);
+
+    try {
+        // 1. Delete the sale record first
+        await deleteDoc(doc(db, 'sales', sale.id));
+
+        // 2. Attempt stock revert for each line item individually (partial revert)
+        await Promise.allSettled(items.map(async (item) => {
+            // Skip if we don't have enough info to identify the catalogue entry
+            if (!item.productId || item.varIndex == null) return;
+
+            try {
+                const productRef = doc(db, 'catalogue', item.productId);
+                await runTransaction(db, async (transaction) => {
+                    const productDoc = await transaction.get(productRef);
+                    // Product no longer exists — silently skip
+                    if (!productDoc.exists()) return;
+
+                    const variations = [...productDoc.data().variations];
+                    if (!variations[item.varIndex]) return; // Variation index gone — skip
+
+                    variations[item.varIndex].stock += item.quantity;
+                    transaction.update(productRef, { variations });
+                });
+            } catch {
+                // Silently skip any individual item revert failure
+            }
+        }));
+
+        // 3. Remove from local state and re-render
+        allSales = allSales.filter(s => s.id !== sale.id);
+        updateSummary();
+        applyFilters();
+        showToast('🗑️ Transaction deleted and stock reverted where applicable.');
+
+    } catch (err) {
+        console.error('Delete failed:', err);
+        showToast('❌ Failed to delete transaction. Please try again.', 'error');
+    }
+}
+
+// --- SUMMARY ---
 function updateSummary() {
     const start = startOf(activePeriod);
     const periodSales = allSales.filter(sale => {
@@ -120,18 +165,17 @@ function updateSummary() {
     });
 
     const revenue = periodSales.reduce((sum, s) => sum + getGrandTotal(s), 0);
-    const units = periodSales.reduce((sum, s) => sum + getItems(s).reduce((a, i) => a + i.quantity, 0), 0);
+    const units   = periodSales.reduce((sum, s) => sum + getItems(s).reduce((a, i) => a + i.quantity, 0), 0);
 
-    document.getElementById('stat-revenue').textContent = `RM ${revenue.toFixed(2)}`;
+    document.getElementById('stat-revenue').textContent     = `RM ${revenue.toFixed(2)}`;
     document.getElementById('stat-transactions').textContent = periodSales.length;
-    document.getElementById('stat-units').textContent = units;
+    document.getElementById('stat-units').textContent        = units;
 
     const methodTotals = {};
     periodSales.forEach(s => {
         const m = s.paymentMethod || 'Unknown';
         methodTotals[m] = (methodTotals[m] || 0) + getGrandTotal(s);
     });
-
     const topMethod = Object.entries(methodTotals).sort((a, b) => b[1] - a[1])[0];
     document.getElementById('stat-top-payment').textContent = topMethod ? topMethod[0] : '—';
 
@@ -171,8 +215,8 @@ filterFrom.value = formatDateForInput(thirtyDaysAgo);
 filterTo.value   = formatDateForInput(today);
 
 function applyFilters() {
-    const fromDate   = filterFrom.value ? new Date(filterFrom.value) : null;
-    const toDate     = filterTo.value   ? new Date(filterTo.value + 'T23:59:59') : null;
+    const fromDate   = filterFrom.value  ? new Date(filterFrom.value) : null;
+    const toDate     = filterTo.value    ? new Date(filterTo.value + 'T23:59:59') : null;
     const payFilter  = filterPayment.value;
     const prodFilter = filterProduct.value.toLowerCase().trim();
 
@@ -181,10 +225,8 @@ function applyFilters() {
         if (fromDate && saleDate && saleDate < fromDate) return false;
         if (toDate   && saleDate && saleDate > toDate)   return false;
         if (payFilter && sale.paymentMethod !== payFilter) return false;
-        // Product filter: check if any line item matches
         if (prodFilter) {
-            const items = getItems(sale);
-            const match = items.some(i => i.productName?.toLowerCase().includes(prodFilter));
+            const match = getItems(sale).some(i => i.productName?.toLowerCase().includes(prodFilter));
             if (!match) return false;
         }
         return true;
@@ -195,16 +237,15 @@ function applyFilters() {
 }
 
 // --- TABLE RENDER ---
-// Each transaction is one row; clicking it expands to show line items
 function renderTable(sales) {
     salesBody.innerHTML = '';
-    if (sales.length === 0) {
-        salesBody.innerHTML = '<tr><td colspan="5" class="table-empty">No records match your filters.</td></tr>';
+    if (!sales.length) {
+        salesBody.innerHTML = '<tr><td colspan="6" class="table-empty">No records match your filters.</td></tr>';
         return;
     }
 
     sales.forEach((sale, idx) => {
-        const items = getItems(sale);
+        const items      = getItems(sale);
         const grandTotal = getGrandTotal(sale);
         const itemSummary = items.length === 1
             ? `${items[0].productName} — ${items[0].variationName} × ${items[0].quantity}`
@@ -212,25 +253,40 @@ function renderTable(sales) {
 
         const rowId = `tx-${idx}`;
 
-        // Main transaction row
+        // --- Main transaction row ---
         const mainRow = document.createElement('tr');
         mainRow.className = 'tx-row';
         mainRow.innerHTML = `
-            <td class="expand-cell">
+            <td class="expand-cell no-print">
                 <button class="expand-btn" data-target="${rowId}" title="Show items">▶</button>
             </td>
             <td>${formatDateTime(sale.timestamp)}</td>
             <td class="items-summary">${itemSummary}</td>
             <td><span class="payment-badge">${sale.paymentMethod || '—'}</span></td>
             <td class="total-cell">RM ${grandTotal.toFixed(2)}</td>
+            <td class="no-print">
+                <button class="btn-delete-tx" title="Delete transaction">🗑️ Delete</button>
+            </td>
         `;
 
-        // Expandable line items row (hidden by default)
+        // Expand toggle
+        mainRow.querySelector('.expand-btn').addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            const isExpanded = !detailRow.classList.contains('hidden');
+            detailRow.classList.toggle('hidden', isExpanded);
+            btn.textContent = isExpanded ? '▶' : '▼';
+            btn.classList.toggle('expanded', !isExpanded);
+        });
+
+        // Delete button
+        mainRow.querySelector('.btn-delete-tx').addEventListener('click', () => handleDeleteTransaction(sale));
+
+        // --- Expandable line items row ---
         const detailRow = document.createElement('tr');
         detailRow.className = 'tx-detail-row hidden';
         detailRow.id = rowId;
         detailRow.innerHTML = `
-            <td colspan="5" class="tx-detail-cell">
+            <td colspan="6" class="tx-detail-cell">
                 <table class="line-items-table">
                     <thead>
                         <tr>
@@ -248,21 +304,12 @@ function renderTable(sales) {
                                 <td>${i.variationName || '—'}</td>
                                 <td>${i.quantity}</td>
                                 <td>RM ${(i.unitPrice || 0).toFixed(2)}</td>
-                                <td>RM ${(i.lineTotal || i.unitPrice * i.quantity || 0).toFixed(2)}</td>
+                                <td>RM ${(i.lineTotal ?? (i.unitPrice * i.quantity) ?? 0).toFixed(2)}</td>
                             </tr>`).join('')}
                     </tbody>
                 </table>
             </td>
         `;
-
-        // Toggle expand on button click
-        mainRow.querySelector('.expand-btn').addEventListener('click', (e) => {
-            const btn = e.currentTarget;
-            const isExpanded = !detailRow.classList.contains('hidden');
-            detailRow.classList.toggle('hidden', isExpanded);
-            btn.textContent = isExpanded ? '▶' : '▼';
-            btn.classList.toggle('expanded', !isExpanded);
-        });
 
         salesBody.appendChild(mainRow);
         salesBody.appendChild(detailRow);
@@ -275,8 +322,8 @@ filterPayment.addEventListener('change', applyFilters);
 filterProduct.addEventListener('input', applyFilters);
 
 document.getElementById('clear-filters-btn').addEventListener('click', () => {
-    filterFrom.value   = formatDateForInput(thirtyDaysAgo);
-    filterTo.value     = formatDateForInput(today);
+    filterFrom.value    = formatDateForInput(thirtyDaysAgo);
+    filterTo.value      = formatDateForInput(today);
     filterPayment.value = '';
     filterProduct.value = '';
     applyFilters();
@@ -284,9 +331,9 @@ document.getElementById('clear-filters-btn').addEventListener('click', () => {
 
 // --- EXPORT TO EXCEL ---
 document.getElementById('export-btn').addEventListener('click', async () => {
-    const exportBtn = document.getElementById('export-btn');
-    const fromDate   = filterFrom.value ? new Date(filterFrom.value) : null;
-    const toDate     = filterTo.value   ? new Date(filterTo.value + 'T23:59:59') : null;
+    const exportBtn  = document.getElementById('export-btn');
+    const fromDate   = filterFrom.value  ? new Date(filterFrom.value) : null;
+    const toDate     = filterTo.value    ? new Date(filterTo.value + 'T23:59:59') : null;
     const payFilter  = filterPayment.value;
     const prodFilter = filterProduct.value.toLowerCase().trim();
 
@@ -295,10 +342,7 @@ document.getElementById('export-btn').addEventListener('click', async () => {
         if (fromDate && saleDate && saleDate < fromDate) return false;
         if (toDate   && saleDate && saleDate > toDate)   return false;
         if (payFilter && sale.paymentMethod !== payFilter) return false;
-        if (prodFilter) {
-            const items = getItems(sale);
-            if (!items.some(i => i.productName?.toLowerCase().includes(prodFilter))) return false;
-        }
+        if (prodFilter && !getItems(sale).some(i => i.productName?.toLowerCase().includes(prodFilter))) return false;
         return true;
     });
 
@@ -307,21 +351,18 @@ document.getElementById('export-btn').addEventListener('click', async () => {
     exportBtn.disabled = true; exportBtn.textContent = 'Exporting...';
     try {
         const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs');
-
-        // Flatten: one row per line item, grouped under its transaction
         const rows = [];
         filtered.forEach(sale => {
-            const items = getItems(sale);
-            items.forEach((item, idx) => {
+            getItems(sale).forEach((item, idx) => {
                 rows.push({
-                    'Date & Time':    idx === 0 ? formatDateTime(sale.timestamp) : '',
-                    'Payment Method': idx === 0 ? (sale.paymentMethod || '—') : '',
+                    'Date & Time':      idx === 0 ? formatDateTime(sale.timestamp) : '',
+                    'Payment Method':   idx === 0 ? (sale.paymentMethod || '—') : '',
                     'Grand Total (RM)': idx === 0 ? getGrandTotal(sale).toFixed(2) : '',
-                    'Product':        item.productName || '—',
-                    'Variation':      item.variationName || '—',
-                    'Qty':            item.quantity,
-                    'Unit Price (RM)': (item.unitPrice || 0).toFixed(2),
-                    'Line Total (RM)': (item.lineTotal || item.unitPrice * item.quantity || 0).toFixed(2)
+                    'Product':          item.productName   || '—',
+                    'Variation':        item.variationName || '—',
+                    'Qty':              item.quantity,
+                    'Unit Price (RM)':  (item.unitPrice || 0).toFixed(2),
+                    'Line Total (RM)':  (item.lineTotal ?? (item.unitPrice * item.quantity) ?? 0).toFixed(2)
                 });
             });
         });
@@ -331,7 +372,6 @@ document.getElementById('export-btn').addEventListener('click', async () => {
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Sales');
         const colWidths = Object.keys(rows[0]).map(key => ({ wch: Math.max(key.length, ...rows.map(r => String(r[key]).length)) + 2 }));
         worksheet['!cols'] = colWidths;
-
         const fileName = `ROCS_Sales_${formatDateForInput(new Date())}.xlsx`;
         XLSX.writeFile(workbook, fileName);
         showToast(`✅ Exported ${filtered.length} transaction(s) to ${fileName}`);
