@@ -29,18 +29,18 @@
 
             <div class="form-group">
                 <label>Select Item</label>
+                <!-- Category tab bar — populated dynamically from Firestore -->
+                <div id="checkout-tab-bar" class="tab-bar hidden"></div>
                 <div id="product-grid" class="product-grid">
                     <p class="grid-loading">Loading inventory...</p>
                 </div>
             </div>
 
-            <!-- Variant selector — shown only when selected product has multiple variants -->
             <div class="form-group hidden" id="variant-group">
                 <label>Select Variation</label>
                 <div id="variant-grid" class="variant-grid"></div>
             </div>
 
-            <!-- Quantity — shown after item (and variant if needed) is selected -->
             <div class="form-group hidden" id="quantity-group">
                 <label for="quantity">Quantity</label>
                 <div class="quantity-row">
@@ -51,7 +51,6 @@
                 <p class="stock-hint" id="stock-hint"></p>
             </div>
 
-            <!-- Add to Cart -->
             <button type="button" id="add-to-cart-btn" class="btn-add-cart hidden">
                 + Add to Cart
             </button>
@@ -64,12 +63,10 @@
                 <button id="clear-cart-btn" class="btn-clear-cart hidden">Clear All</button>
             </div>
 
-            <!-- Cart items -->
             <div id="cart-items" class="cart-items">
                 <p class="cart-empty">No items added yet.</p>
             </div>
 
-            <!-- Cart footer: total + payment + submit -->
             <div class="cart-footer">
                 <div class="grand-total-row">
                     <span>Grand Total</span>

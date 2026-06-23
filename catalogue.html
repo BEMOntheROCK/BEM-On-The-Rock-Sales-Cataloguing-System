@@ -22,13 +22,42 @@
     </header>
 
     <main class="container">
+
+        <!-- MANAGE CATEGORIES (collapsible) -->
+        <section class="admin-panel">
+            <button class="collapsible-toggle" id="categories-toggle">
+                <span>🗂️ Manage Categories</span>
+                <span class="toggle-chevron">▼</span>
+            </button>
+            <div class="collapsible-body hidden" id="categories-body">
+                <div class="category-manager">
+                    <div class="category-add-row">
+                        <input type="text" id="new-category-input" placeholder="e.g., Church Cafeteria">
+                        <button id="add-category-btn" class="btn-primary-sm">+ Add Category</button>
+                    </div>
+                    <div id="category-list" class="category-list">
+                        <p class="muted">No categories yet.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ADD NEW PRODUCT -->
         <section class="admin-panel form-section">
             <h2>Add New Product</h2>
             <form id="product-form">
-                <!-- Product Name -->
                 <div class="form-group">
                     <label for="product-name">Product Name</label>
                     <input type="text" id="product-name" placeholder="e.g., Church Anniversary T-Shirt" required>
+                </div>
+
+                <!-- Category assignment -->
+                <div class="form-group">
+                    <label>Assign to Categories</label>
+                    <p class="helper-text">Select one or more categories this product belongs to.</p>
+                    <div id="category-checkboxes" class="category-checkboxes">
+                        <p class="muted">No categories available. Create one above first.</p>
+                    </div>
                 </div>
 
                 <!-- Unified Price Toggle -->
@@ -43,7 +72,6 @@
                     <p class="helper-text">Turn on if all variations share the same price.</p>
                 </div>
 
-                <!-- Unified price field (shown when toggle is ON) -->
                 <div class="form-group hidden" id="unified-price-group">
                     <label for="product-price">Unit Price (RM) — All Variations</label>
                     <input type="number" id="product-price" step="0.01" placeholder="35.00">
@@ -67,6 +95,12 @@
                 <div class="form-group">
                     <label>Product Variations & Stock Levels</label>
                     <p class="helper-text" id="variations-helper">Specify the name, price, and stock for each variation.</p>
+                    <div class="variation-header" id="add-variation-header">
+                        <span class="vh-name">Variation Name</span>
+                        <span class="vh-price">Price (RM)</span>
+                        <span class="vh-stock">Stock</span>
+                        <span class="vh-del"></span>
+                    </div>
                     <div id="variations-container">
                         <div class="variation-row">
                             <input type="text" class="var-name" placeholder="e.g., Size S - Black" required>
@@ -82,14 +116,22 @@
             </form>
         </section>
 
+        <!-- INVENTORY TABLE -->
         <section class="admin-panel table-section">
             <h2>Current Inventory</h2>
+
+            <!-- Category tab bar -->
+            <div class="tab-bar" id="admin-tab-bar">
+                <button class="tab-btn active" data-category="all">All</button>
+            </div>
+
             <div class="table-responsive">
                 <table id="inventory-table">
                     <thead>
                         <tr>
                             <th>Image</th>
                             <th>Product Name</th>
+                            <th>Categories</th>
                             <th>Variations & Stock</th>
                             <th>Actions</th>
                         </tr>
@@ -109,25 +151,29 @@
             </div>
             <div class="modal-body">
                 <form id="edit-form">
-
                     <div class="form-group">
                         <label for="edit-name">Product Name</label>
                         <input type="text" id="edit-name" required>
                     </div>
 
-                    <!-- Unified Price Toggle (Edit) -->
+                    <!-- Category assignment (edit) -->
+                    <div class="form-group">
+                        <label>Assign to Categories</label>
+                        <div id="edit-category-checkboxes" class="category-checkboxes"></div>
+                    </div>
+
+                    <!-- Unified Price Toggle (edit) -->
                     <div class="form-group price-toggle-group">
                         <label class="toggle-label">
                             <div class="toggle-switch">
                                 <input type="checkbox" id="edit-unified-price-toggle">
                                 <span class="toggle-slider"></span>
                             </div>
-                            <span>Same price for all variations</span>
+                            <span>Same price for all product variations (sizes/types)</span>
                         </label>
                         <p class="helper-text">Turn on if all variations share the same price.</p>
                     </div>
 
-                    <!-- Unified price field (shown when toggle is ON) -->
                     <div class="form-group hidden" id="edit-unified-price-group">
                         <label for="edit-price">Unit Price (RM) — All Variations</label>
                         <input type="number" id="edit-price" step="0.01">
